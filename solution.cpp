@@ -19,39 +19,6 @@ struct BigInt {
         for (int j = s.size()-1; j >= i; j--) digits.push_back(s[j]-'0');
     }
 
-    BigInt operator+(const BigInt &b) const {
-        if (sign != b.sign) return *this - (-b);
-        BigInt res; res.digits.clear();
-        res.sign = sign;
-        int carry = 0;
-        int n = max(digits.size(), b.digits.size());
-        for (int i = 0; i < n; i++) {
-            int x = (i < digits.size()? digits[i]:0) + (i < b.digits.size()? b.digits[i]:0) + carry;
-            res.digits.push_back(x%10); carry=x/10;
-        }
-        if (carry) res.digits.push_back(carry);
-        return res;
-    }
-
-    BigInt operator-() const {
-        BigInt res = *this; res.sign *= -1; return res;
-    }
-
-    BigInt operator-(const BigInt &b) const {
-        if (sign != b.sign) return *this + (-b);
-        if (*this < b) return -(b - *this);
-        BigInt res; res.digits.clear();
-        res.sign = sign;
-        int borrow = 0;
-        for (size_t i = 0; i < digits.size(); i++) {
-            int x = digits[i] - (i < b.digits.size()? b.digits[i]:0) - borrow;
-            if (x < 0) { x += 10; borrow = 1; } else borrow = 0;
-            res.digits.push_back(x);
-        }
-        while (res.digits.size()>1 && res.digits.back()==0) res.digits.pop_back();
-        return res;
-    }
-
     BigInt operator*(const BigInt &b) const {
         BigInt res; res.digits.assign(digits.size()+b.digits.size(),0); res.sign=sign*b.sign;
         for (size_t i = 0; i < digits.size(); i++)
@@ -63,13 +30,6 @@ struct BigInt {
         }
         while (res.digits.size()>1 && res.digits.back()==0) res.digits.pop_back();
         return res;
-    }
-
-    bool operator<(const BigInt &b) const {
-        if (sign != b.sign) return sign < b.sign;
-        if (digits.size() != b.digits.size()) return digits.size()*sign < b.digits.size()*b.sign;
-        for (int i = digits.size()-1; i>=0; i--) if (digits[i]!=b.digits[i]) return digits[i]*sign < b.digits[i]*sign;
-        return false;
     }
 
     friend ostream& operator<<(ostream &os, const BigInt &b) {
@@ -131,25 +91,12 @@ int main() {
     if(roots.size()<k){cerr<<"Error: fewer roots than k\n"; return 1;}
     vector<BigInt> selected(roots.begin(),roots.begin()+k);
 
-    // polynomial coefficients
-    vector<BigInt> coeffs={BigInt(1)};
-    for(auto r: selected){
-        vector<BigInt> newCoeffs(coeffs.size()+1,BigInt(0));
-        for(size_t i=0;i<coeffs.size();i++){
-            newCoeffs[i+1]=newCoeffs[i+1]+coeffs[i];      // multiply by x
-            newCoeffs[i]=newCoeffs[i]-coeffs[i]*r;        // multiply by -r
-        }
-        coeffs=newCoeffs;
-    }
+    // compute constant term
+    BigInt constant(1);
+    for(auto r: selected) constant = constant * BigInt(-1) * r;
 
     // output
-    cout<<"n = "<<n<<", k = "<<k<<"\n";
-    cout<<"Roots in decimal:\n";
-    for(auto r:selected) cout<<r<<"\n";
-
-    cout<<"Polynomial coefficients (highest degree first):\n";
-    for(int i=(int)coeffs.size()-1;i>=0;i--) cout<<coeffs[i]<<" ";
-    cout<<"\n";
+    cout << constant << "\n";
 
     return 0;
 }
